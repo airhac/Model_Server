@@ -28,7 +28,7 @@ json_data = json.loads(json_data)
 array_list = []
 dict_list = list(json_data.values())
 for i in range(len(dict_list)):
-    t = bytes(dict_list[i], encoding='KSC5601')
+    t = bytes(dict_list[i], encoding='ascii')
     r = base64.decodebytes(t)
     q = np.frombuffer(r, dtype=np.int8)
     array_list.append(q)

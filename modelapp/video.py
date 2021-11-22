@@ -1,6 +1,7 @@
 import cv2.cv2 as cv2
 from easyocr import easyocr
 import datetime
+import numpy as np
 
 class Make_Video():
     # 이미지 길이처리
@@ -57,6 +58,136 @@ class Make_Video():
 
         # 객체를 반드시 종료시켜주어야 한다
         video.release()
+
+        # 영상 저장 위치 반환
+        return video_name
+
+    # [이미지,글자수]의 리스트를 받아 영상으로 만들고 저장하는 함수
+    def new_view_seconds(self, img_list, t_c, ani_effect, tran_effect):
+        # 영상이름 오늘 날자와 시간으로 지정
+        nowdate = datetime.datetime.now()
+        daytime = nowdate.strftime("%Y-%m-%d_%H%M%S")
+        # 영상 저장 위치 설정
+        video_name = 'ani/' + daytime + '.mp4'
+        out_path = 'media/' + video_name
+        # video codec 설정
+        fourcc = cv2.VideoWriter_fourcc(*'AVC1')
+
+        # 여기서부터 컷과 책 형태 분리 하기
+        # toon 형식
+        if t_c == 'T':
+            wid, hei = 2500, 2500
+            fps = 35.0
+            video = cv2.VideoWriter(out_path, fourcc, fps, (wid, hei))
+            back_image = np.zeros((hei, wid, 3), np.uint8)
+            # 3중 리스트로 되어있음
+            for idx, image in enumerate(img_list):
+                for i, j in enumerate(image):
+                    # 말풍선 효과 넣었을 때
+                    if ani_effect == 'B':
+                        for k in j:
+                            cols, rows, channel = k.shape
+                            space_width = int((wid - rows) / 2)
+                            space_height = int((hei - cols) / 2)
+                            back_image = np.zeros((hei, wid, 3), np.uint8)
+                            back_image[space_height:space_height + cols, space_width:space_width + rows] = k
+                            video.write(back_image)
+                        for _ in range(60):
+                            video.write(back_image)
+                        for l in j[::-1]:
+                            cols, rows, channel = l.shape
+                            space_width = int((wid - rows) / 2)
+                            space_height = int((hei - cols) / 2)
+                            back_image = np.zeros((hei, wid, 3), np.uint8)
+                            back_image[space_height:space_height + cols, space_width:space_width + rows] = l
+                            video.write(back_image)
+                        last_frame = back_image
+                    # 말풍선 효과 안넣었을 때
+                    else:
+                        image_hei, image_wid = j[0].shape[:2]
+                        img_result = cv2.resize(j[0], (2300, int((2300 / image_wid) * image_hei)),
+                                                interpolation=cv2.INTER_CUBIC)
+                        back_image = np.zeros((hei, wid, 3), np.uint8)
+                        cols, rows, channel = img_result.shape
+                        space_width = int((wid - rows) / 2)
+                        each_image_duration = (len(j) * 2) + 60
+                        for k in range(each_image_duration):
+                            if cols < hei:
+                                space_height = int((hei - cols) / 2)
+                                back_image[space_height:space_height + cols,
+                                space_width:space_width + rows] = img_result
+                            else:
+                                nx = int(((cols - 2500) / each_image_duration) * k)
+                                back_image[:, space_width:space_width + rows] = img_result[nx:nx + 2500, :]
+                            video.write(back_image)
+                        last_frame = back_image
+
+                    # 여기서부터는 영상 전환 효과
+                    if (i + 1 == len(image)) and (idx + 1 < len(img_list)):
+                        imag = img_list[idx + 1][0][0]
+                    elif (i + 1 < len(image)) and (j[0].shape[:2] != image[i + 1][0].shape[:2]):
+                        imag = image[i + 1][0]
+                    else:
+                        continue
+                    image_hei, image_wid = imag.shape[:2]
+
+                    # 말풍선 효과 넣었을 때
+                    if ani_effect == 'B':
+                        back_image = np.zeros((hei, wid, 3), np.uint8)
+                        space_width = int((wid - image_wid) / 2)
+                        space_height = int((hei - image_hei) / 2)
+                        back_image[space_height:space_height + image_hei, space_width:space_width + image_wid] = imag
+
+                    # 말풍선 효과 안넣었을 때
+                    else:
+                        img_result = cv2.resize(imag, (2300, int((2300 / image_wid) * image_hei)),
+                                                interpolation=cv2.INTER_CUBIC)
+                        back_image = np.zeros((hei, wid, 3), np.uint8)
+                        cols, rows, channel = img_result.shape
+                        space_width = int((wid - rows) / 2)
+                        if cols < hei:
+                            space_height = int((hei - cols) / 2)
+                            back_image[space_height:space_height + cols, space_width:space_width + rows] = img_result
+                        else:
+                            back_image[:, space_width:space_width + rows] = img_result[0:2500, :]
+
+                    for p in range(1, int(fps + 1)):
+                        frame = np.zeros((hei, wid, 3), np.uint8)
+                        # 왼쪽으로...
+                        if tran_effect == 'Lt':
+                            dx = int((wid / fps) * p)
+                            frame = np.zeros((hei, wid, 3), dtype=np.uint8)
+                            frame[:, 0:wid - dx, :] = last_frame[:, dx:wid, :]
+                            frame[:, wid - dx:wid, :] = back_image[:, 0:dx, :]
+
+                        # 오른쪽으로...
+                        elif tran_effect == 'Rt':
+                            dx = int((wid / fps) * p)
+                            frame = np.zeros((hei, wid, 3), dtype=np.uint8)
+                            frame[:, 0:dx, :] = back_image[:, wid - dx:wid, :]
+                            frame[:, dx:wid, :] = last_frame[:, 0:wid - dx, :]
+
+                        # 위로...
+                        elif tran_effect == 'U':
+                            dx = int((hei / fps) * p)
+                            frame = np.zeros((hei, wid, 3), dtype=np.uint8)
+                            frame[0:hei - dx, :, :] = last_frame[dx:hei, :, :]
+                            frame[hei - dx:hei, :, :] = back_image[0:dx, :, :]
+
+                        # 디졸브 효과
+                        elif tran_effect == 'D':
+                            alpha = p / fps
+                            frame = cv2.addWeighted(last_frame, 1 - alpha, back_image, alpha, 0)
+
+                        video.write(frame)
+            # 객체를 반드시 종료시켜주어야 한다
+            video.release()
+        # comic 만화책 형식일때
+        else:
+            pass
+
+        # 객체를 반드시 종료시켜주어야 한다
+        # video.release()
 
         # 영상 저장 위치 반환
         return video_name
