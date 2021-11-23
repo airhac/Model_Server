@@ -37,7 +37,7 @@ class New_Model():
 
 
     def split_cut_b(self,img, polygon, page_num, is_bubble=False):
-        x, y, w, h = cv2.boundingRect(polygon)  # 폴리곤으로 bounding박스 그림
+        x, y, w, h = cv2.boundingRect(polygon)  # 폴리곤으로 bounding 박스 그림
         croped = img[y:y + h, x:x + w].copy()  # 원본 이미지에서 자름.
 
         # 패딩을 추가해보자
@@ -45,7 +45,7 @@ class New_Model():
         if not is_bubble:
             # ******* 저는 작은 이미지로 해서 패딩을 100정도 줬습니다.
             # ******* 큰 이미지로 하시게 되면 패딩을 더 넣어주셔야 합니다.
-            padding = 500
+            padding = 300
             startline = int(padding / 2)
 
             img_padding = np.zeros([h + padding, w + padding, 3], np.uint8)

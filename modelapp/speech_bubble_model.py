@@ -3,7 +3,7 @@ import numpy as np
 
 class ComicFrameBook():
 
-    def __init__(self, ani_effect, bubbles, cuts, cut_polygons, bubble_centers, page_len, padding=500):
+    def __init__(self, ani_effect, bubbles, cuts, cut_polygons, bubble_centers, page_len, padding=300):
         self.ani_effect = ani_effect
         self.cuts = cuts
         self.bubbles = bubbles

@@ -11,6 +11,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 import base64
 import numpy as np
+
+import gc
+import tensorflow as tf
+
 import json
 class JSONResponse(HttpResponse):
     def __init__(self, data, **kwargs):
@@ -51,10 +55,17 @@ class UserView(APIView):
             img_list = framebook.makeframe_proc()
 
         # [[이미지,문자열길이],[이미지,문자열길이],...]
+        else:
+            img_list = make_page_cut(image_list, l_r)
 
         # 리스트를 영상처리해주는 함수에 넣고 저장해줌
         # 반환값은 저장된 영상위치
-        video_path = self.make_video.new_view_seconds(img_list ,t_c, ani_effect, tran_effect)
+        video_path = self.make_video.new_view_seconds(img_list ,t_c , ani_effect, tran_effect)
+
+        # gpu session 비워주기
+        tf.keras.backend.clear_session()
+        gc.collect()
+
         servermodel = Server_Model(image_num=data[0]['animate'], video=video_path)
         servermodel.save()
 
