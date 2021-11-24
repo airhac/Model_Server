@@ -4,6 +4,7 @@ from io import BytesIO
 from modelapp.new_model import New_Model
 from modelapp.models import Server_Model
 from modelapp.speech_bubble_model import ComicFrameBook
+from modelapp.webtoon_model import Web_Toon
 from modelapp.video import Make_Video
 # Create your views here.
 from rest_framework.renderers import JSONRenderer
@@ -26,6 +27,8 @@ class UserView(APIView):
     #model = Server_Model() 본 모델
     new_model = New_Model()
     make_video = Make_Video()
+    web_toon = Web_Toon()
+
     def post(self, request):
         # form받아옴
         data = request.data #data가 list으로 들어온다. 안에 dictionary 형태로 되어있음
@@ -56,19 +59,20 @@ class UserView(APIView):
 
         # [[이미지,문자열길이],[이미지,문자열길이],...]
         else:
-            img_list = make_page_cut(image_list, l_r)
+            img_list = self.web_toon.make_page_cut(image_list, l_r)
 
         # 리스트를 영상처리해주는 함수에 넣고 저장해줌
         # 반환값은 저장된 영상위치
         video_path = self.make_video.new_view_seconds(img_list ,t_c , ani_effect, tran_effect)
-
+        print(video_path)
         # gpu session 비워주기
-        tf.keras.backend.clear_session()
-        gc.collect()
+        #tf.keras.backend.clear_session()
+        #gc.collect()
 
         servermodel = Server_Model(image_num=data[0]['animate'], video=video_path)
+        print(servermodel)
         servermodel.save()
 
-        return JSONResponse(data=video_path, status=200)  # 테스트용 Response
+        return JSONResponse(data=video_path, status=200) # 테스트용 Response
 
 

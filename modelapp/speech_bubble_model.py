@@ -3,7 +3,7 @@ import numpy as np
 
 class ComicFrameBook():
 
-    def __init__(self, ani_effect, bubbles, cuts, cut_polygons, bubble_centers, page_len, padding=300):
+    def __init__(self, ani_effect, bubbles, cuts, cut_polygons, bubble_centers, page_len):
         self.ani_effect = ani_effect
         self.cuts = cuts
         self.bubbles = bubbles
@@ -11,7 +11,6 @@ class ComicFrameBook():
         self.bubble_centers = bubble_centers
 
         self.page_len = page_len
-        self.padding = padding  # 컷 분리 때 사용하는 패딩과 같은 값이어야 합니다.
 
         self.page_count = 0  # 결과 출력용도
 
@@ -58,7 +57,7 @@ class ComicFrameBook():
                 for bub_num in bub_nums:
                     target_bub = self.bubbles[page_num][bub_num]
                     bub_centroid = self.bubble_centers[page_num][bub_num]
-                    frames.append(self.make_bubblescope_cut(self.ani_effect, target_bub, cut, bub_centroid, self.padding))
+                    frames.append(self.make_bubblescope_cut(self.ani_effect, target_bub, cut, bub_centroid))
 
             frame_pages.append(frames)
 
@@ -66,7 +65,8 @@ class ComicFrameBook():
 
     # 컷 한장, 버블 한장당 작동합니다.
     # 확대 배율은 현재 임의로 설정 해 두었습니다.
-    def make_bubblescope_cut(self, ani_effect, bubble, cut, bub_centroid, padding):
+    def make_bubblescope_cut(self, ani_effect, bubble, cut, bub_centroid):
+        padding = cut['padding']
         half_padding = int(padding / 2)
         if ani_effect == "B":
             scope_list = np.linspace(1, 1.6, 12)

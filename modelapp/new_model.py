@@ -43,9 +43,10 @@ class New_Model():
         # 패딩을 추가해보자
         # 컷일 경우에만 패딩을 추가합니다.
         if not is_bubble:
-            # ******* 저는 작은 이미지로 해서 패딩을 100정도 줬습니다.
-            # ******* 큰 이미지로 하시게 되면 패딩을 더 넣어주셔야 합니다.
-            padding = 300
+            # ******* 현 패딩 > 컷의 높이와 너비 중 큰 값의 0.45
+            # ******* 대부분의 컷은 0.3정도로도 잘 작동하는데 어떤 컷은 0.4에도 터집니다.
+            # ******* ex) 2부 4화 94p
+            padding = int(max(h, w) * 0.45)
             startline = int(padding / 2)
 
             img_padding = np.zeros([h + padding, w + padding, 3], np.uint8)
@@ -67,8 +68,7 @@ class New_Model():
         if is_bubble:
             return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_cut_num': -1}
         else:
-            return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_bub_num': []}
-
+            return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_bub_num': [], 'padding': padding}
 
     def sort_cut_b(self,img_list, contours, read, is_bubble=False):
         height = img_list[0].shape[0]
