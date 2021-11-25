@@ -1,16 +1,19 @@
 from tensorflow.python.keras.models import load_model
 import cv2.cv2 as cv2
 import numpy as np
+from sklearn import preprocessing
 
 class Web_Toon():
     IMAGE_SIZE = 224
     def plus_cut(self,img, polygons):
         cuts = []
-        croped = img.copy()
-        mask = np.zeros(croped.shape[:2], np.uint8)
-        bg = np.ones_like(croped, np.uint8) * 255
-        for polygon in polygons:
-            cv2.drawContours(mask, [polygon], -1, (255, 255, 255), -1, cv2.LINE_AA)
+        # opencv 비트 연산으로 이미지 합성
+        for idx, polygon in enumerate(polygons):
+            croped = img.copy()
+            mask = np.zeros(croped.shape[:2], np.uint8)
+            bg = np.ones_like(croped, np.uint8) * 255
+            for poly in polygons[:idx + 1]:
+                cv2.drawContours(mask, [poly], -1, (255, 255, 255), -1, cv2.LINE_AA)
             dst = cv2.bitwise_and(croped, croped, mask=mask)
             cv2.bitwise_not(bg, bg, mask=mask)
             cut = bg + dst
@@ -132,6 +135,42 @@ class Web_Toon():
                 final_list.append(page_img_list)
         return final_list
 
+    def bubble_len(self, cuts_list, bubbles_list, bubble_cents):
+        bub_len_list = []
+        for i, row_img in enumerate(cuts_list):
+            page_len = []
+            if not bubble_cents[i][0]:
+                no_bubble = []
+                for img in row_img:
+                    no_bubble.append(0)
+                bub_len_list.append(no_bubble)
+            else:
+                for j, row_cut_img in enumerate(row_img):
+                    img_shape = row_cut_img.shape[0]
+                    bubble_img = bubbles_list[i][-1]
+                    polygons = bubble_cents[i][j]
+                    if not polygons:
+                        page_len.append(0)
+                    else:
+                        for polygon in polygons:
+                            # 말풍선 영역 자르기
+                            x, y, w, h = cv2.boundingRect(polygon)
+                            bubble_roi = bubble_img[y:y + h, x:x + w].copy()
+                            pts = polygon - polygon.min(axis=0)
+                            # 마스크 설정
+                            mask = np.zeros(bubble_roi.shape[:2], np.uint8)
+                            cv2.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv2.LINE_AA)
+                            mask_inv = cv2.bitwise_not(mask)
+                            # 마스크로 자르기
+                            cut_bubble = cv2.bitwise_and(bubble_roi, bubble_roi, mask=mask)
+                            gray_bubble = cv2.cvtColor(cut_bubble, cv2.COLOR_BGR2GRAY)
+                            binarizer = preprocessing.Binarizer(threshold=150)
+                            bub_binary = binarizer.transform(255 - (mask_inv + gray_bubble))
+                            bub_len = np.sum(bub_binary) / img_shape
+                            bub_len = np.round(bub_len, 2)
+                            page_len.append(bub_len)
+                bub_len_list.append(page_len)
+        return bub_len_list
 
     def make_page_cut(self, img_list, read):
         cuts_list = []
@@ -149,5 +188,6 @@ class Web_Toon():
         bubbles_list, bubble_polygons = self.make_polygons(padding_img_list, padding_bubble_labels, read)
         bubble_cents = self.bubble_cent(cuts_polygons, bubble_polygons)
         final_list = self.bubble_effect(cuts_list, bubbles_list, bubble_cents)
-        return final_list
+        bub_len_list = self.bubble_len(cuts_list, bubbles_list, bubble_cents)
+        return final_list, bub_len_list
 

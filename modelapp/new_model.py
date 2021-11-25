@@ -9,7 +9,8 @@ class New_Model():
     # 말풍선 모델
     model_b = load_model('model/bubble_gray_model.h5')
     # 말풍선 모델
-    def image_preproc(self,image_list):  # 이 코드는 전처리부분만을 가져왔습니다.
+
+    def image_preproc(self, image_list):  # 이 코드는 전처리부분만을 가져왔습니다.
         img_input = []
 
         # 모델 입력 전처리
@@ -35,8 +36,7 @@ class New_Model():
 
         return labels_list[0], labels_list[1]  # 0 : cut, 1 : bubble
 
-
-    def split_cut_b(self,img, polygon, page_num, is_bubble=False):
+    def split_cut_b(self, img, polygon, page_num, is_bubble=False):
         x, y, w, h = cv2.boundingRect(polygon)  # 폴리곤으로 bounding 박스 그림
         croped = img[y:y + h, x:x + w].copy()  # 원본 이미지에서 자름.
 
@@ -66,11 +66,25 @@ class New_Model():
         # 변경점. 이제 모든 이미지는 x, y, w, h, mask, matching_num 값을 포함합니다.
         # 컷에 말풍선이 없거나 말풍선이 잘못 검출 된 경우를 위해 여기서 초기화합니다.
         if is_bubble:
-            return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_cut_num': -1}
+            txt_per_bub = self.find_txt_cnt(dst, mask)
+            return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_cut_num': -1, 'txt_per_bub': txt_per_bub}
         else:
             return {'image': dst, 'xywh': [x, y, w, h], 'mask': mask, 'matching_bub_num': [], 'padding': padding}
 
-    def sort_cut_b(self,img_list, contours, read, is_bubble=False):
+    def find_txt_cnt(self, bubble, mask):
+        _, thresh_mask = cv2.threshold(mask, 127, 1, 0)  # 이진화
+        bubble_px_cnt = np.sum(thresh_mask)
+        bg = np.ones_like(mask)
+        res = bubble.copy()
+        cv2.bitwise_not(res, res, mask=bg)
+        res_gray = cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)  # 이미지 1채널로 변경
+        _, res_bit = cv2.threshold(res_gray, 127, 1, 0)  ##  이진화
+        only_text = cv2.bitwise_and(thresh_mask, thresh_mask, mask=res_bit)
+        bubble_txt_cnt = np.sum(only_text)
+        txt_per_bub = bubble_txt_cnt / bubble_px_cnt
+        return txt_per_bub
+
+    def sort_cut_b(self, img_list, contours, read, is_bubble=False):
         height = img_list[0].shape[0]
         width = img_list[0].shape[1]
         n = 0
@@ -105,7 +119,6 @@ class New_Model():
 
         return sort_contours, centroids
 
-
     def make_cut_bubble(self, img_list, labels, read, is_bubble=False):
         cuts_list = []
         centroids_list = []
@@ -123,14 +136,6 @@ class New_Model():
                 cuts_list.append([])
                 bubble_centers_list.append([])
                 continue
-
-            # 아직 잘못 나온 이미지 처리 안함..
-            # print("여기")
-            # print(np.shape(contours))
-            # print(contours[0].shape)
-            # for cont in contours:
-            #     if cont[0] < 200:
-            #         contours.remove(cont)
 
             # 컷 정렬
             if is_bubble:

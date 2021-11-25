@@ -21,7 +21,7 @@ class JSONResponse(HttpResponse):
     def __init__(self, data, **kwargs):
         content = JSONRenderer().render(data)
         kwargs['content_type'] ='application/json'
-        super(JSONResponse,self).__init__(content, **kwargs)
+        super(JSONResponse, self).__init__(content, **kwargs)
 
 class UserView(APIView):
     #model = Server_Model() 본 모델
@@ -55,19 +55,20 @@ class UserView(APIView):
             cuts, centroids_cut, polygons = self.new_model.make_cut_bubble(image_list, labels_cut, l_r, is_bubble=False)
             # 객체 생성과 동시에 말풍선과 컷을 매칭합니다.
             framebook = ComicFrameBook(ani_effect, bubbles, cuts, polygons, bubble_centers, page_len=len(image_list))
+            text_bubble_len_list = framebook.txt_per_bub_list
             img_list = framebook.makeframe_proc()
 
         # [[이미지,문자열길이],[이미지,문자열길이],...]
         else:
-            img_list = self.web_toon.make_page_cut(image_list, l_r)
+            img_list, text_bubble_len_list = self.web_toon.make_page_cut(image_list, l_r)
 
         # 리스트를 영상처리해주는 함수에 넣고 저장해줌
         # 반환값은 저장된 영상위치
-        video_path = self.make_video.new_view_seconds(img_list ,t_c , ani_effect, tran_effect)
+        video_path = self.make_video.new_view_seconds(img_list, t_c, ani_effect, tran_effect, text_bubble_len_list)
         print(video_path)
         # gpu session 비워주기
-        #tf.keras.backend.clear_session()
-        #gc.collect()
+        tf.keras.backend.clear_session()
+        gc.collect()
 
         servermodel = Server_Model(image_num=data[0]['animate'], video=video_path)
         print(servermodel)

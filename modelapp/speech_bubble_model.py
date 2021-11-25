@@ -11,7 +11,7 @@ class ComicFrameBook():
         self.bubble_centers = bubble_centers
 
         self.page_len = page_len
-
+        self.txt_per_bub_list = []
         self.page_count = 0  # 결과 출력용도
 
         for i in range(self.page_len):
@@ -42,6 +42,7 @@ class ComicFrameBook():
         self.page_count = 0
         for page_num in range(self.page_len):  # 페이지단위로 움직입니다.
             frames = []
+            txt_per_bub_page = []
             for idx, cut in enumerate(self.cuts[page_num]):
                 bub_nums = cut['matching_bub_num']  # 각 컷에 매칭되는 말풍선을 찾습니다.
 
@@ -49,7 +50,7 @@ class ComicFrameBook():
                 # 말풍선이 없는 경우. 지금은 이미지 하나만 그대로 들어갑니다. 나중에 개수를 수정할 필요가 있습니다.
                 if len(bub_nums) == 0:
                     frames.append([cut['image']])
-
+                    txt_per_bub_page.append(0.05)
                     self.page_count += 1
                     continue
 
@@ -57,10 +58,11 @@ class ComicFrameBook():
                 for bub_num in bub_nums:
                     target_bub = self.bubbles[page_num][bub_num]
                     bub_centroid = self.bubble_centers[page_num][bub_num]
+                    txt_per_bub_page.append(target_bub['txt_per_bub'])
                     frames.append(self.make_bubblescope_cut(self.ani_effect, target_bub, cut, bub_centroid))
 
             frame_pages.append(frames)
-
+            self.txt_per_bub_list.append(txt_per_bub_page)
         return frame_pages
 
     # 컷 한장, 버블 한장당 작동합니다.
