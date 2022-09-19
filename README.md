@@ -14,8 +14,11 @@
 
 ### 이 파일은 전체 프로젝트에서 모델 처리부분 서버를 만들기 위해 따로 분리한 파일이며 프로젝트 관련한 자세한 설명은 아래링크를 가시면 보실수 있습니다.  
 pip install pillow
+
 pip install opencv-python
+
 pip install scikit-learn
+
 pip install requests
 pip install djangorestframework
 conda install cudatoolkit
